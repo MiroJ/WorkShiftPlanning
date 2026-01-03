@@ -9,6 +9,7 @@ public class WorkShiftScheduleCalculator(
     int month,
     int totalStaffCount,
     int numberOfShifts,
+    int staffPerShift,
     int firstShiftStartHour,
     int regularStartHour,
     double shiftDuration,
@@ -62,7 +63,7 @@ public class WorkShiftScheduleCalculator(
             // Shifts are scheduled EVERY day for 24-hour coverage
             if (numberOfShifts > 0)
             {
-                dailySchedule.ShiftStaffNeeded = numberOfShifts;
+                dailySchedule.ShiftStaffNeeded = numberOfShifts * staffPerShift;
 
                 double shiftHoursPerPerson = shiftDuration;
                 double extendedHoursPerPerson = 0;
@@ -93,55 +94,59 @@ public class WorkShiftScheduleCalculator(
                     var shiftStart = baseShiftStart.AddHours(shiftStartOffset);
                     var shiftEnd = shiftStart.AddHours(shiftHoursPerPerson);
 
-                    bool assigned = false;
-                    int attempts = 0;
-                    int maxAttempts = totalStaffCount * 2;
-
-                    while (!assigned && attempts < maxAttempts)
+                    // Assign staffPerShift number of staff to this shift
+                    for (int staffSlot = 0; staffSlot < staffPerShift; staffSlot++)
                     {
-                        var staffIndex = (shiftStaffRotation[shiftIndex] + attempts) % totalStaffCount;
-                        var staff = staffMembers[staffIndex];
+                        bool assigned = false;
+                        int attempts = 0;
+                        int maxAttempts = totalStaffCount * 2;
 
-                        bool alreadyAssignedShiftToday = dailySchedule.ShiftAssignments.Any(a => a.StaffId == staff.StaffId);
-
-                        if (!alreadyAssignedShiftToday)
+                        while (!assigned && attempts < maxAttempts)
                         {
-                            var canWork = CanStaffWorkShift(staff, shiftStart, shiftEnd, date, out var violation);
+                            var staffIndex = (shiftStaffRotation[shiftIndex] + attempts) % totalStaffCount;
+                            var staff = staffMembers[staffIndex];
 
-                            if (canWork || attempts >= totalStaffCount)
+                            bool alreadyAssignedShiftToday = dailySchedule.ShiftAssignments.Any(a => a.StaffId == staff.StaffId);
+
+                            if (!alreadyAssignedShiftToday)
                             {
-                                var assignment = new WorkAssignment
-                                {
-                                    StaffId = staff.StaffId,
-                                    Date = date,
-                                    ShiftStart = shiftStart,
-                                    ShiftEnd = shiftEnd,
-                                    Hours = shiftHoursPerPerson,
-                                    ExtendedHours = extendedHoursPerPerson,
-                                    ShiftLabel = $"Shift {(char)('A' + shiftIndex)}",
-                                    ShiftNumber = shiftIndex + 1,
-                                    IsRegularWork = false
-                                };
+                                var canWork = CanStaffWorkShift(staff, shiftStart, shiftEnd, date, out var violation);
 
-                                dailySchedule.ShiftAssignments.Add(assignment);
-                                staff.AllAssignments.Add(assignment);
-
-                                if (!canWork && violation != null)
+                                if (canWork || attempts >= totalStaffCount)
                                 {
-                                    restViolations.Add(violation);
+                                    var assignment = new WorkAssignment
+                                    {
+                                        StaffId = staff.StaffId,
+                                        Date = date,
+                                        ShiftStart = shiftStart,
+                                        ShiftEnd = shiftEnd,
+                                        Hours = shiftHoursPerPerson,
+                                        ExtendedHours = extendedHoursPerPerson,
+                                        ShiftLabel = $"Shift {(char)('A' + shiftIndex)}",
+                                        ShiftNumber = shiftIndex + 1,
+                                        IsRegularWork = false
+                                    };
+
+                                    dailySchedule.ShiftAssignments.Add(assignment);
+                                    staff.AllAssignments.Add(assignment);
+
+                                    if (!canWork && violation != null)
+                                    {
+                                        restViolations.Add(violation);
+                                    }
+
+                                    shiftStaffRotation[shiftIndex] = (staffIndex + 1) % totalStaffCount;
+                                    assigned = true;
                                 }
-
-                                shiftStaffRotation[shiftIndex] = (staffIndex + 1) % totalStaffCount;
-                                assigned = true;
                             }
+
+                            attempts++;
                         }
 
-                        attempts++;
-                    }
-
-                    if (assigned)
-                    {
-                        totalExtendedHours += extendedHoursPerPerson;
+                        if (assigned)
+                        {
+                            totalExtendedHours += extendedHoursPerPerson;
+                        }
                     }
                 }
             }
