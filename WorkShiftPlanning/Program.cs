@@ -1,4 +1,6 @@
 ﻿// See https://aka.ms/new-console-template for more information
+using WorkShiftPlanning;
+
 Console.Clear();
 Console.WriteLine("=== Work Shift Planning System ===\n");
 
@@ -50,7 +52,7 @@ double maxOnDutyHoursPerMonth = double.Parse(string.IsNullOrWhiteSpace(maxOnDuty
 // Calculate maximum work hours for the selected month
 int workdaysInMonth = Enumerable.Range(1, DateTime.DaysInMonth(year, month))
     .Select(day => new DateTime(year, month, day))
-    .Count(date => date.DayOfWeek != DayOfWeek.Saturday && 
+    .Count(date => date.DayOfWeek != DayOfWeek.Saturday &&
                    date.DayOfWeek != DayOfWeek.Sunday);
 double maxWorkHoursThisMonth = (workdaysInMonth * standardHours) + maxOnDutyHoursPerMonth;
 Console.WriteLine($"  Calculated maximum work hours for {new DateTime(year, month, 1):MMMM yyyy}: {maxWorkHoursThisMonth:F2}h (Regular: {workdaysInMonth * standardHours:F2}h + Extended: {maxOnDutyHoursPerMonth:F2}h)");
@@ -65,9 +67,6 @@ Console.Write($"Enter minimum rest hours required after shift (default: {default
 var restHoursAfterInput = Console.ReadLine();
 double restHoursAfter = double.Parse(string.IsNullOrWhiteSpace(restHoursAfterInput) ? defaultRestHoursAfter : restHoursAfterInput);
 
-Console.Write("Should staff work regular hours on weekends/holidays? (y/N): ");
-bool regularWorkOnHolidays = Console.ReadLine()?.Trim().ToLower() == "y";
-
 // Create schedule calculator
 var calculator = new WorkShiftScheduleCalculator(
     year,
@@ -80,8 +79,7 @@ var calculator = new WorkShiftScheduleCalculator(
     standardHours,
     maxOnDutyHoursPerMonth,
     restHoursBefore,
-    restHoursAfter,
-    regularWorkOnHolidays);
+    restHoursAfter);
 var schedule = calculator.CalculateSchedule();
 
 // Display results
@@ -265,8 +263,6 @@ class WorkShiftScheduleCalculator
     private readonly double _maxOnDutyHoursPerMonth;
     private readonly double _restHoursBefore;
     private readonly double _restHoursAfter;
-    private readonly bool _regularWorkOnHolidays;
-    private readonly List<DateTime> _holidays;
 
     public WorkShiftScheduleCalculator(
         int year,
@@ -279,8 +275,7 @@ class WorkShiftScheduleCalculator
         double standardHours,
         double maxOnDutyHoursPerMonth,
         double restHoursBefore,
-        double restHoursAfter,
-        bool regularWorkOnHolidays)
+        double restHoursAfter)
     {
         _year = year;
         _month = month;
@@ -293,8 +288,6 @@ class WorkShiftScheduleCalculator
         _maxOnDutyHoursPerMonth = maxOnDutyHoursPerMonth;
         _restHoursBefore = restHoursBefore;
         _restHoursAfter = restHoursAfter;
-        _regularWorkOnHolidays = regularWorkOnHolidays;
-        _holidays = GetHolidays(year);
     }
 
     public ScheduleResult CalculateSchedule()
@@ -429,16 +422,13 @@ class WorkShiftScheduleCalculator
 
         // PHASE 2: Assign regular work, avoiding staff with shifts that would violate rest periods
         int regularStaffRotation = 0;
-        
+
         for (int day = 1; day <= daysInMonth; day++)
         {
             var dailySchedule = dailySchedules[day - 1];
             var date = dailySchedule.Date;
-            bool isWorkday = dailySchedule.IsWorkday;
 
-            bool regularWorkScheduled = isWorkday || _regularWorkOnHolidays;
-
-            if (regularWorkScheduled && _totalStaffCount > 0)
+            if (dailySchedule.IsWorkday && _totalStaffCount > 0)
             {
                 dailySchedule.RegularStaffNeeded = _totalStaffCount;
                 dailySchedule.RegularHours = _standardHours;
@@ -446,7 +436,7 @@ class WorkShiftScheduleCalculator
                 int assignedCount = 0;
                 int attempts = 0;
                 int maxAttempts = _totalStaffCount * 2;
-                
+
                 var regularWorkStart = new DateTime(date.Year, date.Month, date.Day, _regularStartHour, 0, 0);
                 var regularWorkEnd = regularWorkStart.AddHours(_standardHours);
 
@@ -457,11 +447,11 @@ class WorkShiftScheduleCalculator
 
                     // Check if staff already has regular work today
                     bool alreadyAssignedRegularToday = dailySchedule.RegularStaffAssignments.Any(a => a.StaffId == staff.StaffId);
-                    
+
                     if (!alreadyAssignedRegularToday)
                     {
                         bool canWork = true;
-                        
+
                         // Check if staff has a shift today
                         bool hasShiftToday = dailySchedule.ShiftAssignments.Any(a => a.StaffId == staff.StaffId);
                         if (hasShiftToday)
@@ -475,7 +465,7 @@ class WorkShiftScheduleCalculator
                                 .Where(a => !a.IsRegularWork && a.ShiftEnd <= regularWorkStart)
                                 .OrderByDescending(a => a.ShiftEnd)
                                 .FirstOrDefault();
-                                
+
                             if (previousShift != null)
                             {
                                 var hoursSinceShiftEnded = (regularWorkStart - previousShift.ShiftEnd).TotalHours;
@@ -490,7 +480,7 @@ class WorkShiftScheduleCalculator
                                 .Where(a => !a.IsRegularWork && a.ShiftStart >= regularWorkEnd)
                                 .OrderBy(a => a.ShiftStart)
                                 .FirstOrDefault();
-                                
+
                             if (nextShift != null)
                             {
                                 var hoursUntilShiftStarts = (nextShift.ShiftStart - regularWorkEnd).TotalHours;
@@ -517,7 +507,7 @@ class WorkShiftScheduleCalculator
                             dailySchedule.RegularStaffAssignments.Add(assignment);
                             staff.AllAssignments.Add(assignment);
                             assignedCount++;
-                            
+
                             if (assignedCount == 1)
                             {
                                 regularStaffRotation = (staffIndex + 1) % _totalStaffCount;
@@ -606,7 +596,7 @@ class WorkShiftScheduleCalculator
             .Where(a => !a.IsRegularWork)
             .OrderByDescending(a => a.ShiftEnd)
             .FirstOrDefault();
-            
+
         if (previousShiftAssignment != null)
         {
             var hoursSinceLast = (shiftStart - previousShiftAssignment.ShiftEnd).TotalHours;
@@ -635,61 +625,10 @@ class WorkShiftScheduleCalculator
         if (date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday)
             return false;
 
-        if (_holidays.Any(h => h.Date == date.Date))
+        if (DateTimeExtensions.GetHolidays(date.Year).Any(h => h.Date == date.Date))
             return false;
 
         return true;
-    }
-
-    private List<DateTime> GetHolidays(int year)
-    {
-        var holidays = new List<DateTime>
-        {
-            new DateTime(year, 1, 1),
-            new DateTime(year, 7, 4),
-            new DateTime(year, 12, 25),
-        };
-
-        holidays.Add(GetLastMondayOfMonth(year, 5));
-        holidays.Add(GetFirstMondayOfMonth(year, 9));
-        holidays.Add(GetNthDayOfWeek(year, 11, DayOfWeek.Thursday, 4));
-
-        return holidays;
-    }
-
-    private DateTime GetLastMondayOfMonth(int year, int month)
-    {
-        var lastDay = new DateTime(year, month, DateTime.DaysInMonth(year, month));
-        while (lastDay.DayOfWeek != DayOfWeek.Monday)
-            lastDay = lastDay.AddDays(-1);
-        return lastDay;
-    }
-
-    private DateTime GetFirstMondayOfMonth(int year, int month)
-    {
-        var firstDay = new DateTime(year, month, 1);
-        while (firstDay.DayOfWeek != DayOfWeek.Monday)
-            firstDay = firstDay.AddDays(1);
-        return firstDay;
-    }
-
-    private DateTime GetNthDayOfWeek(int year, int month, DayOfWeek dayOfWeek, int occurrence)
-    {
-        var firstDay = new DateTime(year, month, 1);
-        int count = 0;
-
-        for (int day = 1; day <= DateTime.DaysInMonth(year, month); day++)
-        {
-            var date = new DateTime(year, month, day);
-            if (date.DayOfWeek == dayOfWeek)
-            {
-                count++;
-                if (count == occurrence)
-                    return date;
-            }
-        }
-
-        return firstDay;
     }
 }
 
