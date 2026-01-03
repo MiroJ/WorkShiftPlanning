@@ -1,8 +1,9 @@
-﻿// See https://aka.ms/new-console-template for more information
-using WorkShiftPlanning;
+﻿using WorkShiftPlanning;
 
 Console.Clear();
+Console.ForegroundColor = ConsoleColor.White;
 Console.WriteLine("=== Work Shift Planning System ===\n");
+Console.ForegroundColor = ConsoleColor.Gray;
 
 // Get input parameters
 string defaultYear = DateTime.Now.Year.ToString();
@@ -80,28 +81,32 @@ var calculator = new WorkShiftScheduleCalculator(
     maxOnDutyHoursPerMonth,
     restHoursBefore,
     restHoursAfter);
+
+// Calculate schedule
 var schedule = calculator.CalculateSchedule();
 
 // Display results
+Console.ForegroundColor = ConsoleColor.White;
 Console.WriteLine($"\n=== Schedule for {new DateTime(year, month, 1):MMMM yyyy} ===\n");
+Console.ForegroundColor = ConsoleColor.Gray;
 Console.WriteLine($"Total Staff Members: {totalStaffCount}");
-Console.WriteLine($"Regular Workday: {regularStartHour:D2}:00 - {(regularStartHour + (int)standardHours) % 24:D2}:00 ({standardHours} hours)");
+Console.WriteLine($"Regular Workday:     {regularStartHour:D2}:00 - {(regularStartHour + (int)standardHours) % 24:D2}:00 ({standardHours} hours)");
 Console.WriteLine($"  All available staff (not on shift or rest) will be assigned regular work");
 Console.WriteLine($"\n24-Hour Shift Coverage ({numberOfShifts} sequential shifts):");
 for (int i = 0; i < numberOfShifts; i++)
 {
     int startHour = (firstShiftStartHour + (int)(i * shiftDuration)) % 24;
     int endHour = (firstShiftStartHour + (int)((i + 1) * shiftDuration)) % 24;
-    Console.WriteLine($"  Shift {i + 1}: {startHour:D2}:00 - {endHour:D2}:00 ({shiftDuration}h)");
+    Console.WriteLine($"  Shift {(char)('A' + i)}: {startHour:D2}:00 - {endHour:D2}:00 ({shiftDuration}h)");
 }
 Console.WriteLine($"  Staff per shift: 1");
-Console.WriteLine($"\nRest Requirements: {restHoursBefore}h before shift, {restHoursAfter}h after shift");
-Console.WriteLine($"Monthly Extended Hours Limit: {maxOnDutyHoursPerMonth}h per person");
-Console.WriteLine($"\nTotal Days: {schedule.TotalDays}");
-Console.WriteLine($"Workdays: {schedule.Workdays}");
-Console.WriteLine($"Weekends/Holidays: {schedule.NonWorkdays}");
-Console.WriteLine($"\nTotal Regular Hours Required: {schedule.TotalRegularHours:F2}");
-Console.WriteLine($"Total Extended Hours: {schedule.TotalExtendedHours:F2}");
+Console.WriteLine($"\nRest Requirements:              {restHoursBefore}h before shift, {restHoursAfter}h after shift");
+Console.WriteLine($"Monthly Extended Hours Limit:   {maxOnDutyHoursPerMonth}h per person");
+Console.WriteLine($"\nTotal Days:                     {schedule.TotalDays}");
+Console.WriteLine($"Workdays:                       {schedule.Workdays}");
+Console.WriteLine($"Weekends/Holidays:              {schedule.NonWorkdays}");
+Console.WriteLine($"\nTotal Regular Hours Required:   {schedule.TotalRegularHours:F2}");
+Console.WriteLine($"Total Extended Hours:           {schedule.TotalExtendedHours:F2}");
 
 if (schedule.RestViolations.Count > 0)
 {
@@ -109,7 +114,9 @@ if (schedule.RestViolations.Count > 0)
     Console.WriteLine("Some staff may not have adequate rest between shifts.");
 }
 
+Console.ForegroundColor = ConsoleColor.White;
 Console.WriteLine("\n=== Daily Breakdown ===");
+Console.ForegroundColor = ConsoleColor.Gray;
 foreach (var day in schedule.DailySchedules)
 {
     string dayType = day.IsWorkday ? "Workday" : "Holiday/Weekend";
@@ -154,7 +161,9 @@ foreach (var day in schedule.DailySchedules)
     }
 }
 
+Console.ForegroundColor = ConsoleColor.White;
 Console.WriteLine("\n=== Staff Utilization Summary ===");
+Console.ForegroundColor = ConsoleColor.Gray;
 Console.WriteLine($"Total Regular Work Hours: {schedule.TotalRegularHours:F2}");
 Console.WriteLine($"Total Extended Hours: {schedule.TotalExtendedHours:F2}");
 Console.WriteLine($"Combined Total Hours: {schedule.TotalRegularHours + schedule.TotalExtendedHours:F2}");
@@ -177,7 +186,9 @@ if (allStaff.Any())
 // Rest violation summary
 if (schedule.RestViolations.Count > 0)
 {
+    Console.ForegroundColor = ConsoleColor.Yellow;
     Console.WriteLine("\n=== Rest Period Violations ===");
+    Console.ForegroundColor = ConsoleColor.Gray;
     foreach (var violation in schedule.RestViolations.Take(10))
     {
         Console.WriteLine($"{violation.StaffId} on {violation.Date:yyyy-MM-dd}: {violation.Reason}");
@@ -192,7 +203,9 @@ if (schedule.RestViolations.Count > 0)
 }
 
 // Individual staff schedules
+Console.ForegroundColor = ConsoleColor.White;
 Console.WriteLine("\n=== Individual Staff Schedules ===");
+Console.ForegroundColor = ConsoleColor.Gray;
 
 foreach (var staff in schedule.StaffMembers.OrderBy(s => s.StaffId))
 {
@@ -201,7 +214,17 @@ foreach (var staff in schedule.StaffMembers.OrderBy(s => s.StaffId))
     Console.WriteLine($"  Regular Work Hours: {staff.TotalRegularHours:F2}");
     if (staff.TotalExtendedHours > 0)
     {
-        Console.WriteLine($"  Extended Hours: {staff.TotalExtendedHours:F2}");
+        Console.Write($"  Extended Hours: ");
+        if (staff.TotalExtendedHours > maxOnDutyHoursPerMonth)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+        }
+        else
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+        }
+        Console.WriteLine($"{staff.TotalExtendedHours:F2}");
+        Console.ForegroundColor = ConsoleColor.Gray;
     }
     Console.WriteLine($"  Total Assignments: {staff.AllAssignments.Count}");
 
@@ -214,7 +237,7 @@ foreach (var staff in schedule.StaffMembers.OrderBy(s => s.StaffId))
     Console.WriteLine($"  Schedule:");
     foreach (var assignment in staff.AllAssignments.OrderBy(a => a.Date).ThenBy(a => a.ShiftStart))
     {
-        string assignmentType = assignment.IsRegularWork ? "Regular Work" : $"Shift {assignment.ShiftNumber}";
+        string assignmentType = assignment.IsRegularWork ? "Regular Work" : $"Shift {(char)('A' + assignment.ShiftNumber - 1)}";
 
         string breakdown;
         if (assignment.IsRegularWork)

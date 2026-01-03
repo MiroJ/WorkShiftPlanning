@@ -118,7 +118,7 @@ public class WorkShiftScheduleCalculator(
                                     ShiftEnd = shiftEnd,
                                     Hours = shiftHoursPerPerson,
                                     ExtendedHours = extendedHoursPerPerson,
-                                    ShiftLabel = $"Shift {shiftIndex + 1}",
+                                    ShiftLabel = $"Shift {(char)('A' + shiftIndex)}",
                                     ShiftNumber = shiftIndex + 1,
                                     IsRegularWork = false
                                 };
