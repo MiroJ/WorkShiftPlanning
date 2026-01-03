@@ -245,6 +245,18 @@ foreach (var staff in schedule.StaffMembers.OrderBy(s => s.StaffId))
         Console.ForegroundColor = ConsoleColor.Gray;
     }
 
+    // Show shift distribution
+    var shiftAssignments = staff.AllAssignments.Where(a => !a.IsRegularWork).ToList();
+    if (shiftAssignments.Any())
+    {
+        var shiftCounts = shiftAssignments
+            .GroupBy(a => a.ShiftLabel)
+            .OrderBy(g => g.Key)
+            .Select(g => $"{g.Key}: {g.Count()}")
+            .ToList();
+        Console.WriteLine($"  Shift Distribution: {string.Join(", ", shiftCounts)}");
+    }
+
     Console.WriteLine($"  Schedule:");
     foreach (var assignment in staff.AllAssignments.OrderBy(a => a.Date).ThenBy(a => a.ShiftStart))
     {
