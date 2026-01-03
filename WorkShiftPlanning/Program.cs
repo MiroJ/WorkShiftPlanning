@@ -1,81 +1,94 @@
 ﻿// See https://aka.ms/new-console-template for more information
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
+Console.Clear();
 Console.WriteLine("=== Work Shift Planning System ===\n");
 
 // Get input parameters
-Console.Write("Enter year: ");
-int year = int.Parse(Console.ReadLine() ?? DateTime.Now.Year.ToString());
+string defaultYear = DateTime.Now.Year.ToString();
+Console.Write($"Enter year (default: {defaultYear}): ");
+var yearInput = Console.ReadLine();
+int year = int.Parse(string.IsNullOrWhiteSpace(yearInput) ? defaultYear : yearInput);
 
-Console.Write("Enter month (1-12): ");
-int month = int.Parse(Console.ReadLine() ?? DateTime.Now.Month.ToString());
+string defaultMonth = "3"; // DateTime.Now.Month.ToString();
+Console.Write($"Enter month (default: {defaultMonth}): ");
+var monthInput = Console.ReadLine();
+int month = int.Parse(string.IsNullOrWhiteSpace(monthInput) ? defaultMonth : monthInput);
 
-Console.Write("Enter total number of staff members: ");
-int totalStaffCount = int.Parse(Console.ReadLine() ?? "10");
+string defaultTotalStaff = "20";
+Console.Write($"Enter total number of staff members (default: {defaultTotalStaff}): ");
+var totalStaffCountInput = Console.ReadLine();
+int totalStaffCount = int.Parse(string.IsNullOrWhiteSpace(totalStaffCountInput) ? defaultTotalStaff : totalStaffCountInput);
 
-Console.Write("Enter number of staff for regular work hours per day: ");
-int regularStaffPerDay = int.Parse(Console.ReadLine() ?? totalStaffCount.ToString());
-
-Console.Write("Enter number of shifts per day (sequential, 24h coverage): ");
-int numberOfShifts = int.Parse(Console.ReadLine() ?? "2");
+string defaultShifts = "2";
+Console.Write($"Enter number of shifts per day (default: {defaultShifts}): ");
+var numberOfShiftsInput = Console.ReadLine();
+int numberOfShifts = int.Parse(string.IsNullOrWhiteSpace(numberOfShiftsInput) ? defaultShifts : numberOfShiftsInput);
 
 // Calculate shift duration automatically to ensure 24-hour coverage
 double shiftDuration = 24.0 / numberOfShifts;
 Console.WriteLine($"  Calculated shift duration: {shiftDuration:F2} hours per shift");
 
-Console.Write("Enter first shift start time (0-23): ");
-int firstShiftStartHour = int.Parse(Console.ReadLine() ?? "8");
+string defaultFirstShiftStart = "8";
+Console.Write($"Enter first shift start time (0-23, default: {defaultFirstShiftStart}): ");
+var firstShiftStartHourInput = Console.ReadLine();
+int firstShiftStartHour = int.Parse(string.IsNullOrWhiteSpace(firstShiftStartHourInput) ? defaultFirstShiftStart : firstShiftStartHourInput);
 
-Console.Write("Enter regular workday start time (0-23): ");
-int regularStartHour = int.Parse(Console.ReadLine() ?? "8");
+string defaultRegularStart = "8";
+Console.Write($"Enter regular workday start time (0-23, default: {defaultRegularStart}): ");
+var regularStartHourInput = Console.ReadLine();
+int regularStartHour = int.Parse(string.IsNullOrWhiteSpace(regularStartHourInput) ? defaultRegularStart : regularStartHourInput);
 
-Console.Write("Enter standard workday hours: ");
-double standardHours = double.Parse(Console.ReadLine() ?? "7");
+string defaultStandardHours = "7.5";
+Console.Write($"Enter standard workday hours (default: {defaultStandardHours}): ");
+var standardHoursInput = Console.ReadLine();
+double standardHours = double.Parse(string.IsNullOrWhiteSpace(standardHoursInput) ? defaultStandardHours : standardHoursInput);
 
-Console.Write("Enter maximum total on-duty hours per person per month: ");
-double maxOnDutyHoursPerMonth = double.Parse(Console.ReadLine() ?? "40");
+string defaultMaxOnDutyHours = "36";
+Console.Write($"Enter maximum total extended hours per person per month (default: {defaultMaxOnDutyHours}): ");
+var maxOnDutyHoursPerMonthInput = Console.ReadLine();
+double maxOnDutyHoursPerMonth = double.Parse(string.IsNullOrWhiteSpace(maxOnDutyHoursPerMonthInput) ? defaultMaxOnDutyHours : maxOnDutyHoursPerMonthInput);
 
-Console.Write("Enter minimum rest hours required before shift: ");
-double restHoursBefore = double.Parse(Console.ReadLine() ?? "12");
+// Calculate maximum work hours for the selected month
+int workdaysInMonth = Enumerable.Range(1, DateTime.DaysInMonth(year, month))
+    .Select(day => new DateTime(year, month, day))
+    .Count(date => date.DayOfWeek != DayOfWeek.Saturday && 
+                   date.DayOfWeek != DayOfWeek.Sunday);
+double maxWorkHoursThisMonth = (workdaysInMonth * standardHours) + maxOnDutyHoursPerMonth;
+Console.WriteLine($"  Calculated maximum work hours for {new DateTime(year, month, 1):MMMM yyyy}: {maxWorkHoursThisMonth:F2}h (Regular: {workdaysInMonth * standardHours:F2}h + Extended: {maxOnDutyHoursPerMonth:F2}h)");
 
-Console.Write("Enter minimum rest hours required after shift: ");
-double restHoursAfter = double.Parse(Console.ReadLine() ?? "12");
+string defaultRestHours = "12";
+Console.Write($"Enter minimum rest hours required before shift (default: {defaultRestHours}): ");
+var restHoursBeforeInput = Console.ReadLine();
+double restHoursBefore = double.Parse(string.IsNullOrWhiteSpace(restHoursBeforeInput) ? defaultRestHours : restHoursBeforeInput);
 
-Console.Write("Should staff work regular hours on weekends/holidays? (y/n): ");
+string defaultRestHoursAfter = "24";
+Console.Write($"Enter minimum rest hours required after shift (default: {defaultRestHoursAfter}): ");
+var restHoursAfterInput = Console.ReadLine();
+double restHoursAfter = double.Parse(string.IsNullOrWhiteSpace(restHoursAfterInput) ? defaultRestHoursAfter : restHoursAfterInput);
+
+Console.Write("Should staff work regular hours on weekends/holidays? (y/N): ");
 bool regularWorkOnHolidays = Console.ReadLine()?.Trim().ToLower() == "y";
-
-Console.Write("Should staff work extra shifts on weekends/holidays? (y/n): ");
-bool shiftsOnHolidays = Console.ReadLine()?.Trim().ToLower() == "y";
-
-Console.Write("Enable extended hours mode (allows staff to work beyond standard hours)? (y/n): ");
-bool extendedHoursMode = Console.ReadLine()?.Trim().ToLower() == "y";
 
 // Create schedule calculator
 var calculator = new WorkShiftScheduleCalculator(
-    year, 
-    month, 
+    year,
+    month,
     totalStaffCount,
-    regularStaffPerDay,
     numberOfShifts,
     firstShiftStartHour,
     regularStartHour,
-    shiftDuration, 
-    standardHours, 
+    shiftDuration,
+    standardHours,
     maxOnDutyHoursPerMonth,
     restHoursBefore,
     restHoursAfter,
-    regularWorkOnHolidays,
-    shiftsOnHolidays,
-    extendedHoursMode);
+    regularWorkOnHolidays);
 var schedule = calculator.CalculateSchedule();
 
 // Display results
 Console.WriteLine($"\n=== Schedule for {new DateTime(year, month, 1):MMMM yyyy} ===\n");
 Console.WriteLine($"Total Staff Members: {totalStaffCount}");
 Console.WriteLine($"Regular Workday: {regularStartHour:D2}:00 - {(regularStartHour + (int)standardHours) % 24:D2}:00 ({standardHours} hours)");
-Console.WriteLine($"  Staff per day: {regularStaffPerDay}");
+Console.WriteLine($"  All available staff (not on shift or rest) will be assigned regular work");
 Console.WriteLine($"\n24-Hour Shift Coverage ({numberOfShifts} sequential shifts):");
 for (int i = 0; i < numberOfShifts; i++)
 {
@@ -85,12 +98,11 @@ for (int i = 0; i < numberOfShifts; i++)
 }
 Console.WriteLine($"  Staff per shift: 1");
 Console.WriteLine($"\nRest Requirements: {restHoursBefore}h before shift, {restHoursAfter}h after shift");
-Console.WriteLine($"Monthly On-Duty Hours Limit: {maxOnDutyHoursPerMonth}h per person");
+Console.WriteLine($"Monthly Extended Hours Limit: {maxOnDutyHoursPerMonth}h per person");
 Console.WriteLine($"\nTotal Days: {schedule.TotalDays}");
 Console.WriteLine($"Workdays: {schedule.Workdays}");
 Console.WriteLine($"Weekends/Holidays: {schedule.NonWorkdays}");
 Console.WriteLine($"\nTotal Regular Hours Required: {schedule.TotalRegularHours:F2}");
-Console.WriteLine($"Total On-Duty Hours Required: {schedule.TotalOnDutyHours:F2}");
 Console.WriteLine($"Total Extended Hours: {schedule.TotalExtendedHours:F2}");
 
 if (schedule.RestViolations.Count > 0)
@@ -104,24 +116,40 @@ foreach (var day in schedule.DailySchedules)
 {
     string dayType = day.IsWorkday ? "Workday" : "Holiday/Weekend";
     Console.WriteLine($"\n{day.Date:yyyy-MM-dd} ({day.Date:ddd}) - {dayType}");
-    
+
     if (day.RegularStaffAssignments.Count > 0)
     {
         Console.WriteLine($"  Regular Work Hours ({standardHours}h):");
-        foreach (var assignment in day.RegularStaffAssignments)
+        foreach (var assignment in day.RegularStaffAssignments.OrderBy(x => x.StaffId))
         {
             Console.WriteLine($"    - {assignment.StaffId}: {assignment.ShiftStart:HH:mm} - {assignment.ShiftEnd:HH:mm} ({assignment.Hours:F2}h)");
         }
     }
-    
+
     if (day.ShiftAssignments.Count > 0)
     {
         Console.WriteLine($"  24-Hour Shift Coverage ({day.ShiftAssignments.Count} sequential shifts):");
         foreach (var assignment in day.ShiftAssignments.OrderBy(a => a.ShiftStart))
         {
-            string breakdown = assignment.ExtendedHours > 0 
-                ? $" [Std: {standardHours:F2}h + On-Duty: {assignment.OnDutyHours:F2}h + Ext: {assignment.ExtendedHours:F2}h]" 
-                : (assignment.OnDutyHours > 0 ? $" [Std: {standardHours:F2}h + On-Duty: {assignment.OnDutyHours:F2}h]" : "");
+            // Check if this is a weekend/holiday to determine if standard hours apply
+            bool isWeekendOrHoliday = !day.IsWorkday;
+
+            string breakdown;
+            if (isWeekendOrHoliday)
+            {
+                // Weekend/holiday: all hours are extended hours
+                breakdown = assignment.ExtendedHours > 0
+                    ? $" [Extended: {assignment.ExtendedHours:F2}h]"
+                    : "";
+            }
+            else
+            {
+                // Regular workday: show standard hours breakdown if there are extended hours
+                breakdown = assignment.ExtendedHours > 0
+                    ? $" [Std: {standardHours:F2}h + Extended: {assignment.ExtendedHours:F2}h]"
+                    : "";
+            }
+
             string shiftLabel = assignment.ShiftLabel != null ? $"{assignment.ShiftLabel} - " : "";
             Console.WriteLine($"    - {shiftLabel}{assignment.StaffId}: {assignment.ShiftStart:HH:mm} - {assignment.ShiftEnd:HH:mm} ({assignment.Hours:F2}h){breakdown}");
         }
@@ -130,8 +158,8 @@ foreach (var day in schedule.DailySchedules)
 
 Console.WriteLine("\n=== Staff Utilization Summary ===");
 Console.WriteLine($"Total Regular Work Hours: {schedule.TotalRegularHours:F2}");
-Console.WriteLine($"Total On-Duty Hours: {schedule.TotalOnDutyHours + schedule.TotalExtendedHours:F2}");
-Console.WriteLine($"Combined Total Hours: {schedule.TotalRegularHours + schedule.TotalOnDutyHours + schedule.TotalExtendedHours:F2}");
+Console.WriteLine($"Total Extended Hours: {schedule.TotalExtendedHours:F2}");
+Console.WriteLine($"Combined Total Hours: {schedule.TotalRegularHours + schedule.TotalExtendedHours:F2}");
 
 // Workload distribution analysis
 var allStaff = schedule.StaffMembers.ToList();
@@ -141,7 +169,7 @@ if (allStaff.Any())
     var maxHours = allStaff.Max(s => s.TotalHours);
     var avgHours = allStaff.Average(s => s.TotalHours);
     var avgShifts = allStaff.Average(s => s.AllAssignments.Count);
-    
+
     Console.WriteLine($"\nStaff Workload Distribution:");
     Console.WriteLine($"  Min Hours: {minHours:F2}, Max Hours: {maxHours:F2}, Average: {avgHours:F2}");
     Console.WriteLine($"  Variance: {(maxHours - minHours):F2}");
@@ -173,26 +201,52 @@ foreach (var staff in schedule.StaffMembers.OrderBy(s => s.StaffId))
     Console.WriteLine($"\n{staff.StaffId}:");
     Console.WriteLine($"  Total Hours: {staff.TotalHours:F2}");
     Console.WriteLine($"  Regular Work Hours: {staff.TotalRegularHours:F2}");
-    Console.WriteLine($"  On-Duty Hours: {staff.TotalOnDutyHours:F2}");
     if (staff.TotalExtendedHours > 0)
     {
         Console.WriteLine($"  Extended Hours: {staff.TotalExtendedHours:F2}");
     }
     Console.WriteLine($"  Total Assignments: {staff.AllAssignments.Count}");
-    
+
     var violations = schedule.RestViolations.Where(v => v.StaffId == staff.StaffId).ToList();
     if (violations.Count > 0)
     {
         Console.WriteLine($"  ⚠ Rest Violations: {violations.Count}");
     }
-    
+
     Console.WriteLine($"  Schedule:");
     foreach (var assignment in staff.AllAssignments.OrderBy(a => a.Date).ThenBy(a => a.ShiftStart))
     {
         string assignmentType = assignment.IsRegularWork ? "Regular Work" : $"Shift {assignment.ShiftNumber}";
-        string breakdown = assignment.ExtendedHours > 0 
-            ? $" [Std: {standardHours:F2}h + On-Duty: {assignment.OnDutyHours:F2}h + Ext: {assignment.ExtendedHours:F2}h]"
-            : (assignment.OnDutyHours > 0 ? $" [Std: {standardHours:F2}h + On-Duty: {assignment.OnDutyHours:F2}h]" : "");
+
+        string breakdown;
+        if (assignment.IsRegularWork)
+        {
+            // Regular work doesn't need breakdown
+            breakdown = "";
+        }
+        else
+        {
+            // Shift work: check if it's on a weekend/holiday
+            double shiftTotalHours = assignment.Hours;
+            double extendedHours = assignment.ExtendedHours;
+            bool isWeekendOrHolidayShift = Math.Abs(shiftTotalHours - extendedHours) < 0.01;
+
+            if (isWeekendOrHolidayShift)
+            {
+                // Weekend/holiday: all hours are extended
+                breakdown = extendedHours > 0
+                    ? $" [Extended: {extendedHours:F2}h]"
+                    : "";
+            }
+            else
+            {
+                // Regular workday: show standard hours + extended
+                breakdown = extendedHours > 0
+                    ? $" [Std: {standardHours:F2}h + Extended: {extendedHours:F2}h]"
+                    : "";
+            }
+        }
+
         Console.WriteLine($"    {assignment.Date:yyyy-MM-dd} ({assignment.Date:ddd}) - {assignmentType}: {assignment.ShiftStart:HH:mm} - {assignment.ShiftEnd:HH:mm} ({assignment.Hours:F2}h){breakdown}");
     }
 }
@@ -203,7 +257,6 @@ class WorkShiftScheduleCalculator
     private readonly int _year;
     private readonly int _month;
     private readonly int _totalStaffCount;
-    private readonly int _regularStaffPerDay;
     private readonly int _numberOfShifts;
     private readonly int _firstShiftStartHour;
     private readonly int _regularStartHour;
@@ -213,31 +266,25 @@ class WorkShiftScheduleCalculator
     private readonly double _restHoursBefore;
     private readonly double _restHoursAfter;
     private readonly bool _regularWorkOnHolidays;
-    private readonly bool _shiftsOnHolidays;
-    private readonly bool _extendedHoursMode;
     private readonly List<DateTime> _holidays;
 
     public WorkShiftScheduleCalculator(
-        int year, 
-        int month, 
+        int year,
+        int month,
         int totalStaffCount,
-        int regularStaffPerDay,
         int numberOfShifts,
         int firstShiftStartHour,
         int regularStartHour,
-        double shiftDuration, 
-        double standardHours, 
+        double shiftDuration,
+        double standardHours,
         double maxOnDutyHoursPerMonth,
         double restHoursBefore,
         double restHoursAfter,
-        bool regularWorkOnHolidays,
-        bool shiftsOnHolidays,
-        bool extendedHoursMode)
+        bool regularWorkOnHolidays)
     {
         _year = year;
         _month = month;
         _totalStaffCount = totalStaffCount;
-        _regularStaffPerDay = Math.Min(regularStaffPerDay, totalStaffCount);
         _numberOfShifts = numberOfShifts;
         _firstShiftStartHour = firstShiftStartHour;
         _regularStartHour = regularStartHour;
@@ -247,8 +294,6 @@ class WorkShiftScheduleCalculator
         _restHoursBefore = restHoursBefore;
         _restHoursAfter = restHoursAfter;
         _regularWorkOnHolidays = regularWorkOnHolidays;
-        _shiftsOnHolidays = shiftsOnHolidays;
-        _extendedHoursMode = extendedHoursMode;
         _holidays = GetHolidays(year);
     }
 
@@ -258,7 +303,7 @@ class WorkShiftScheduleCalculator
         var dailySchedules = new List<DailySchedule>();
         var staffMembers = new List<StaffMember>();
         var restViolations = new List<RestViolation>();
-        
+
         // Initialize staff members - all with same naming scheme
         for (int i = 1; i <= _totalStaffCount; i++)
         {
@@ -267,156 +312,224 @@ class WorkShiftScheduleCalculator
                 StaffId = $"STAFF-{i:D3}"
             });
         }
-        
-        double totalRegularHours = 0;
-        double totalOnDutyHours = 0;
-        double totalExtendedHours = 0;
 
-        int regularStaffRotation = 0;
-        int[] shiftStaffRotation = new int[_numberOfShifts];
-
+        // Initialize all daily schedules first
         for (int day = 1; day <= daysInMonth; day++)
         {
             var date = new DateTime(_year, _month, day);
             bool isWorkday = IsWorkday(date);
-            
-            var dailySchedule = new DailySchedule
+
+            dailySchedules.Add(new DailySchedule
             {
                 Date = date,
                 IsWorkday = isWorkday
-            };
+            });
+        }
 
-            // Determine if staff should work this day
-            bool regularWorkScheduled = isWorkday || _regularWorkOnHolidays;
-            bool shiftsScheduled = isWorkday || _shiftsOnHolidays;
+        double totalRegularHours = 0;
+        double totalExtendedHours = 0;
 
-            if (regularWorkScheduled && _regularStaffPerDay > 0)
+        // PHASE 1: Assign 24-hour shift coverage for the entire month FIRST
+        // This must be done first because shifts are mandatory 24/7 coverage
+        int[] shiftStaffRotation = new int[_numberOfShifts];
+
+        for (int day = 1; day <= daysInMonth; day++)
+        {
+            var dailySchedule = dailySchedules[day - 1];
+            var date = dailySchedule.Date;
+            bool isWorkday = dailySchedule.IsWorkday;
+
+            // Shifts are scheduled EVERY day for 24-hour coverage
+            if (_numberOfShifts > 0)
             {
-                // Assign regular work hours using rotation
-                dailySchedule.RegularStaffNeeded = _regularStaffPerDay;
-                dailySchedule.RegularHours = _standardHours;
-                
-                for (int i = 0; i < _regularStaffPerDay; i++)
-                {
-                    var staffIndex = (regularStaffRotation + i) % _totalStaffCount;
-                    var staff = staffMembers[staffIndex];
-                    
-                    var shiftStart = new DateTime(date.Year, date.Month, date.Day, _regularStartHour, 0, 0);
-                    var shiftEnd = shiftStart.AddHours(_standardHours);
-                    
-                    var assignment = new WorkAssignment
-                    {
-                        StaffId = staff.StaffId,
-                        Date = date,
-                        ShiftStart = shiftStart,
-                        ShiftEnd = shiftEnd,
-                        Hours = _standardHours,
-                        IsRegularWork = true
-                    };
-                    
-                    dailySchedule.RegularStaffAssignments.Add(assignment);
-                    staff.AllAssignments.Add(assignment);
-                }
-                
-                totalRegularHours += _regularStaffPerDay * _standardHours;
-                regularStaffRotation = (regularStaffRotation + _regularStaffPerDay) % Math.Max(_totalStaffCount, 1);
-            }
-
-            if (shiftsScheduled && _numberOfShifts > 0)
-            {
-                // Assign sequential shifts for 24-hour coverage
                 dailySchedule.ShiftStaffNeeded = _numberOfShifts;
-                
-                // Calculate how shift duration breaks down
+
                 double shiftHoursPerPerson = _shiftDuration;
-                double onDutyHoursPerPerson = 0;
                 double extendedHoursPerPerson = 0;
-                
-                if (shiftHoursPerPerson > _standardHours)
+
+                bool isWeekendOrHoliday = !isWorkday;
+
+                if (isWeekendOrHoliday)
                 {
-                    // All hours beyond standard are on-duty hours (no daily limit)
-                    double overtimeHours = shiftHoursPerPerson - _standardHours;
-                    
-                    if (_extendedHoursMode)
+                    // Weekend/holiday shifts: ALL hours count as extended hours
+                    extendedHoursPerPerson = shiftHoursPerPerson;
+                }
+                else
+                {
+                    // Regular workday shifts: hours beyond standard work hours count as extended
+                    if (shiftHoursPerPerson > _standardHours)
                     {
-                        // Split into on-duty and extended for tracking purposes
-                        // For example: up to 4 hours as "on-duty", rest as "extended"
-                        double dailyOnDutyLimit = 4.0; // For display purposes only
-                        onDutyHoursPerPerson = Math.Min(overtimeHours, dailyOnDutyLimit);
-                        extendedHoursPerPerson = overtimeHours - onDutyHoursPerPerson;
-                    }
-                    else
-                    {
-                        // All overtime is on-duty hours
-                        onDutyHoursPerPerson = overtimeHours;
+                        double overtimeHours = shiftHoursPerPerson - _standardHours;
+                        extendedHoursPerPerson = overtimeHours;
                     }
                 }
-                
-                dailySchedule.OnDutyHours = onDutyHoursPerPerson;
+
                 dailySchedule.ExtendedHours = extendedHoursPerPerson;
-                
-                // Assign one staff member per shift slot (sequential coverage)
+
                 for (int shiftIndex = 0; shiftIndex < _numberOfShifts; shiftIndex++)
                 {
-                    // Calculate shift start time (sequential, one after another)
                     double shiftStartOffset = shiftIndex * _shiftDuration;
                     var baseShiftStart = new DateTime(date.Year, date.Month, date.Day, _firstShiftStartHour, 0, 0);
                     var shiftStart = baseShiftStart.AddHours(shiftStartOffset);
                     var shiftEnd = shiftStart.AddHours(shiftHoursPerPerson);
-                    
-                    // Find an available staff member for this shift
+
                     bool assigned = false;
                     int attempts = 0;
                     int maxAttempts = _totalStaffCount * 2;
-                    
+
                     while (!assigned && attempts < maxAttempts)
                     {
                         var staffIndex = (shiftStaffRotation[shiftIndex] + attempts) % _totalStaffCount;
                         var staff = staffMembers[staffIndex];
-                        
-                        // Check if staff can work this shift based on rest requirements
-                        var canWork = CanStaffWorkShift(staff, shiftStart, shiftEnd, date, out var violation);
-                        
-                        if (canWork || attempts >= _totalStaffCount)
+
+                        bool alreadyAssignedShiftToday = dailySchedule.ShiftAssignments.Any(a => a.StaffId == staff.StaffId);
+
+                        if (!alreadyAssignedShiftToday)
                         {
-                            var assignment = new WorkAssignment
+                            var canWork = CanStaffWorkShift(staff, shiftStart, shiftEnd, date, out var violation);
+
+                            if (canWork || attempts >= _totalStaffCount)
                             {
-                                StaffId = staff.StaffId,
-                                Date = date,
-                                ShiftStart = shiftStart,
-                                ShiftEnd = shiftEnd,
-                                Hours = shiftHoursPerPerson,
-                                OnDutyHours = onDutyHoursPerPerson,
-                                ExtendedHours = extendedHoursPerPerson,
-                                ShiftLabel = $"Shift {shiftIndex + 1}",
-                                ShiftNumber = shiftIndex + 1,
-                                IsRegularWork = false
-                            };
-                            
-                            dailySchedule.ShiftAssignments.Add(assignment);
-                            staff.AllAssignments.Add(assignment);
-                            
-                            if (!canWork && violation != null)
-                            {
-                                restViolations.Add(violation);
+                                var assignment = new WorkAssignment
+                                {
+                                    StaffId = staff.StaffId,
+                                    Date = date,
+                                    ShiftStart = shiftStart,
+                                    ShiftEnd = shiftEnd,
+                                    Hours = shiftHoursPerPerson,
+                                    ExtendedHours = extendedHoursPerPerson,
+                                    ShiftLabel = $"Shift {shiftIndex + 1}",
+                                    ShiftNumber = shiftIndex + 1,
+                                    IsRegularWork = false
+                                };
+
+                                dailySchedule.ShiftAssignments.Add(assignment);
+                                staff.AllAssignments.Add(assignment);
+
+                                if (!canWork && violation != null)
+                                {
+                                    restViolations.Add(violation);
+                                }
+
+                                shiftStaffRotation[shiftIndex] = (staffIndex + 1) % _totalStaffCount;
+                                assigned = true;
                             }
-                            
-                            shiftStaffRotation[shiftIndex] = (staffIndex + 1) % _totalStaffCount;
-                            assigned = true;
                         }
-                        
+
                         attempts++;
                     }
-                    
+
                     if (assigned)
                     {
-                        totalOnDutyHours += onDutyHoursPerPerson;
                         totalExtendedHours += extendedHoursPerPerson;
                     }
                 }
             }
+        }
 
-            dailySchedules.Add(dailySchedule);
+        // PHASE 2: Assign regular work, avoiding staff with shifts that would violate rest periods
+        int regularStaffRotation = 0;
+        
+        for (int day = 1; day <= daysInMonth; day++)
+        {
+            var dailySchedule = dailySchedules[day - 1];
+            var date = dailySchedule.Date;
+            bool isWorkday = dailySchedule.IsWorkday;
+
+            bool regularWorkScheduled = isWorkday || _regularWorkOnHolidays;
+
+            if (regularWorkScheduled && _totalStaffCount > 0)
+            {
+                dailySchedule.RegularStaffNeeded = _totalStaffCount;
+                dailySchedule.RegularHours = _standardHours;
+
+                int assignedCount = 0;
+                int attempts = 0;
+                int maxAttempts = _totalStaffCount * 2;
+                
+                var regularWorkStart = new DateTime(date.Year, date.Month, date.Day, _regularStartHour, 0, 0);
+                var regularWorkEnd = regularWorkStart.AddHours(_standardHours);
+
+                while (assignedCount < _totalStaffCount && attempts < maxAttempts)
+                {
+                    var staffIndex = (regularStaffRotation + attempts) % _totalStaffCount;
+                    var staff = staffMembers[staffIndex];
+
+                    // Check if staff already has regular work today
+                    bool alreadyAssignedRegularToday = dailySchedule.RegularStaffAssignments.Any(a => a.StaffId == staff.StaffId);
+                    
+                    if (!alreadyAssignedRegularToday)
+                    {
+                        bool canWork = true;
+                        
+                        // Check if staff has a shift today
+                        bool hasShiftToday = dailySchedule.ShiftAssignments.Any(a => a.StaffId == staff.StaffId);
+                        if (hasShiftToday)
+                        {
+                            canWork = false;
+                        }
+                        else
+                        {
+                            // Check rest period after previous shift
+                            var previousShift = staff.AllAssignments
+                                .Where(a => !a.IsRegularWork && a.ShiftEnd <= regularWorkStart)
+                                .OrderByDescending(a => a.ShiftEnd)
+                                .FirstOrDefault();
+                                
+                            if (previousShift != null)
+                            {
+                                var hoursSinceShiftEnded = (regularWorkStart - previousShift.ShiftEnd).TotalHours;
+                                if (hoursSinceShiftEnded < _restHoursAfter)
+                                {
+                                    canWork = false;
+                                }
+                            }
+
+                            // Check rest period before next shift
+                            var nextShift = staff.AllAssignments
+                                .Where(a => !a.IsRegularWork && a.ShiftStart >= regularWorkEnd)
+                                .OrderBy(a => a.ShiftStart)
+                                .FirstOrDefault();
+                                
+                            if (nextShift != null)
+                            {
+                                var hoursUntilShiftStarts = (nextShift.ShiftStart - regularWorkEnd).TotalHours;
+                                if (hoursUntilShiftStarts < _restHoursBefore)
+                                {
+                                    canWork = false;
+                                }
+                            }
+                        }
+
+                        if (canWork)
+                        {
+                            // Assign regular work
+                            var assignment = new WorkAssignment
+                            {
+                                StaffId = staff.StaffId,
+                                Date = date,
+                                ShiftStart = regularWorkStart,
+                                ShiftEnd = regularWorkEnd,
+                                Hours = _standardHours,
+                                IsRegularWork = true
+                            };
+
+                            dailySchedule.RegularStaffAssignments.Add(assignment);
+                            staff.AllAssignments.Add(assignment);
+                            assignedCount++;
+                            
+                            if (assignedCount == 1)
+                            {
+                                regularStaffRotation = (staffIndex + 1) % _totalStaffCount;
+                            }
+                        }
+                    }
+
+                    attempts++;
+                }
+
+                totalRegularHours += dailySchedule.RegularStaffAssignments.Count * _standardHours;
+            }
         }
 
         // Calculate totals for each staff member
@@ -424,19 +537,17 @@ class WorkShiftScheduleCalculator
         {
             staff.TotalHours = staff.AllAssignments.Sum(a => a.Hours);
             staff.TotalRegularHours = staff.AllAssignments.Where(a => a.IsRegularWork).Sum(a => a.Hours);
-            staff.TotalOnDutyHours = staff.AllAssignments.Where(a => !a.IsRegularWork).Sum(a => a.OnDutyHours);
             staff.TotalExtendedHours = staff.AllAssignments.Where(a => !a.IsRegularWork).Sum(a => a.ExtendedHours);
         }
 
         var workdays = dailySchedules.Count(d => d.IsWorkday);
-        
+
         return new ScheduleResult
         {
             TotalDays = daysInMonth,
             Workdays = workdays,
             NonWorkdays = daysInMonth - workdays,
             TotalRegularHours = totalRegularHours,
-            TotalOnDutyHours = totalOnDutyHours,
             TotalExtendedHours = totalExtendedHours,
             DailySchedules = dailySchedules,
             StaffMembers = staffMembers,
@@ -447,23 +558,35 @@ class WorkShiftScheduleCalculator
     private bool CanStaffWorkShift(StaffMember staff, DateTime shiftStart, DateTime shiftEnd, DateTime currentDate, out RestViolation? violation)
     {
         violation = null;
-        
-        // Check monthly on-duty hours limit
-        double currentOnDutyHours = staff.AllAssignments
+
+        // Check monthly extended hours limit (this includes all non-regular work)
+        double currentExtendedHours = staff.AllAssignments
             .Where(a => !a.IsRegularWork)
-            .Sum(a => a.OnDutyHours + a.ExtendedHours);
-        
-        // Calculate on-duty hours for this potential shift
+            .Sum(a => a.ExtendedHours);
+
+        // Calculate extended hours for this potential shift
         double shiftHoursPerPerson = _shiftDuration;
-        double potentialOnDutyHours = 0;
-        
-        if (shiftHoursPerPerson > _standardHours)
+        double potentialExtendedHours = 0;
+
+        // Check if this is a weekend/holiday
+        bool isWeekendOrHoliday = !IsWorkday(currentDate);
+
+        if (isWeekendOrHoliday)
         {
-            double overtimeHours = shiftHoursPerPerson - _standardHours;
-            potentialOnDutyHours = overtimeHours; // Total on-duty (not limited per day anymore)
+            // Weekend/holiday shifts: all hours are extended hours
+            potentialExtendedHours = shiftHoursPerPerson;
         }
-        
-        if (currentOnDutyHours + potentialOnDutyHours > _maxOnDutyHoursPerMonth)
+        else
+        {
+            // Regular workday shifts: only hours beyond standard are extended
+            if (shiftHoursPerPerson > _standardHours)
+            {
+                double overtimeHours = shiftHoursPerPerson - _standardHours;
+                potentialExtendedHours = overtimeHours;
+            }
+        }
+
+        if (currentExtendedHours + potentialExtendedHours > _maxOnDutyHoursPerMonth)
         {
             violation = new RestViolation
             {
@@ -471,88 +594,39 @@ class WorkShiftScheduleCalculator
                 Date = currentDate,
                 PreviousShiftEnd = DateTime.MinValue,
                 NextShiftStart = shiftStart,
-                ActualRestHours = currentOnDutyHours + potentialOnDutyHours,
+                ActualRestHours = currentExtendedHours + potentialExtendedHours,
                 RequiredRestHours = _maxOnDutyHoursPerMonth,
-                Reason = $"Would exceed monthly on-duty hours limit ({currentOnDutyHours:F2}h + {potentialOnDutyHours:F2}h = {currentOnDutyHours + potentialOnDutyHours:F2}h > {_maxOnDutyHoursPerMonth:F2}h)"
+                Reason = $"Would exceed monthly extended hours limit ({currentExtendedHours:F2}h + {potentialExtendedHours:F2}h = {currentExtendedHours + potentialExtendedHours:F2}h > {_maxOnDutyHoursPerMonth:F2}h)"
             };
             return false;
         }
-        
-        // Check rest period after previous assignment
-        var previousAssignment = staff.AllAssignments.OrderByDescending(a => a.ShiftEnd).FirstOrDefault();
-        if (previousAssignment != null)
-        {
-            var hoursSinceLast = (shiftStart - previousAssignment.ShiftEnd).TotalHours;
+
+        // Check rest period after previous shift assignment
+        var previousShiftAssignment = staff.AllAssignments
+            .Where(a => !a.IsRegularWork)
+            .OrderByDescending(a => a.ShiftEnd)
+            .FirstOrDefault();
             
+        if (previousShiftAssignment != null)
+        {
+            var hoursSinceLast = (shiftStart - previousShiftAssignment.ShiftEnd).TotalHours;
+
             if (hoursSinceLast < _restHoursAfter)
             {
                 violation = new RestViolation
                 {
                     StaffId = staff.StaffId,
                     Date = currentDate,
-                    PreviousShiftEnd = previousAssignment.ShiftEnd,
+                    PreviousShiftEnd = previousShiftAssignment.ShiftEnd,
                     NextShiftStart = shiftStart,
                     ActualRestHours = hoursSinceLast,
                     RequiredRestHours = _restHoursAfter,
-                    Reason = "Insufficient rest after previous assignment"
+                    Reason = "Insufficient rest after previous shift assignment"
                 };
                 return false;
             }
         }
-        
-        // Check if same day has regular work
-        var sameDayRegularWork = staff.AllAssignments
-            .FirstOrDefault(a => a.Date.Date == currentDate.Date && a.IsRegularWork);
-        
-        if (sameDayRegularWork != null)
-        {
-            var hoursBetween = (shiftStart - sameDayRegularWork.ShiftEnd).TotalHours;
-            
-            if (hoursBetween < _restHoursBefore && hoursBetween >= 0)
-            {
-                violation = new RestViolation
-                {
-                    StaffId = staff.StaffId,
-                    Date = currentDate,
-                    PreviousShiftEnd = sameDayRegularWork.ShiftEnd,
-                    NextShiftStart = shiftStart,
-                    ActualRestHours = hoursBetween,
-                    RequiredRestHours = _restHoursBefore,
-                    Reason = "Insufficient rest between regular work and shift"
-                };
-                return false;
-            }
-        }
-        
-        // Check if next day has regular work
-        var nextDay = currentDate.AddDays(1);
-        if (nextDay.Month == _month)
-        {
-            bool nextDayIsWorkday = IsWorkday(nextDay);
-            bool hasNextDayWork = nextDayIsWorkday || _regularWorkOnHolidays;
-            
-            if (hasNextDayWork)
-            {
-                var nextRegularStart = new DateTime(nextDay.Year, nextDay.Month, nextDay.Day, _regularStartHour, 0, 0);
-                var hoursUntilNext = (nextRegularStart - shiftEnd).TotalHours;
-                
-                if (hoursUntilNext < _restHoursAfter)
-                {
-                    violation = new RestViolation
-                    {
-                        StaffId = staff.StaffId,
-                        Date = currentDate,
-                        PreviousShiftEnd = shiftEnd,
-                        NextShiftStart = nextRegularStart,
-                        ActualRestHours = hoursUntilNext,
-                        RequiredRestHours = _restHoursAfter,
-                        Reason = "Insufficient rest before next day's regular work"
-                    };
-                    return false;
-                }
-            }
-        }
-        
+
         return true;
     }
 
@@ -603,7 +677,7 @@ class WorkShiftScheduleCalculator
     {
         var firstDay = new DateTime(year, month, 1);
         int count = 0;
-        
+
         for (int day = 1; day <= DateTime.DaysInMonth(year, month); day++)
         {
             var date = new DateTime(year, month, day);
@@ -614,7 +688,7 @@ class WorkShiftScheduleCalculator
                     return date;
             }
         }
-        
+
         return firstDay;
     }
 }
@@ -626,7 +700,6 @@ class ScheduleResult
     public int Workdays { get; set; }
     public int NonWorkdays { get; set; }
     public double TotalRegularHours { get; set; }
-    public double TotalOnDutyHours { get; set; }
     public double TotalExtendedHours { get; set; }
     public List<DailySchedule> DailySchedules { get; set; } = new();
     public List<StaffMember> StaffMembers { get; set; } = new();
@@ -640,7 +713,6 @@ class DailySchedule
     public int RegularStaffNeeded { get; set; }
     public int ShiftStaffNeeded { get; set; }
     public double RegularHours { get; set; }
-    public double OnDutyHours { get; set; }
     public double ExtendedHours { get; set; }
     public List<WorkAssignment> RegularStaffAssignments { get; set; } = new();
     public List<WorkAssignment> ShiftAssignments { get; set; } = new();
@@ -653,7 +725,6 @@ class WorkAssignment
     public DateTime ShiftStart { get; set; }
     public DateTime ShiftEnd { get; set; }
     public double Hours { get; set; }
-    public double OnDutyHours { get; set; }
     public double ExtendedHours { get; set; }
     public string? ShiftLabel { get; set; }
     public int ShiftNumber { get; set; }
@@ -666,7 +737,6 @@ class StaffMember
     public List<WorkAssignment> AllAssignments { get; set; } = new();
     public double TotalHours { get; set; }
     public double TotalRegularHours { get; set; }
-    public double TotalOnDutyHours { get; set; }
     public double TotalExtendedHours { get; set; }
 }
 
