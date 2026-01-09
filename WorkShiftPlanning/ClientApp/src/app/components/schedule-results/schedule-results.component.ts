@@ -4,9 +4,10 @@ import { ScheduleResult, DailySchedule, StaffMember } from '../../models/schedul
 import { ScheduleDataService } from '../../services/schedule-data.service';
 
 @Component({
-  selector: 'app-schedule-results',
-  templateUrl: './schedule-results.component.html',
-  styleUrls: ['./schedule-results.component.css']
+    selector: 'app-schedule-results',
+    templateUrl: './schedule-results.component.html',
+    styleUrls: ['./schedule-results.component.css'],
+    standalone: false
 })
 export class ScheduleResultsComponent implements OnInit {
   scheduleResult: ScheduleResult | null = null;

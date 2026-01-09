@@ -5,9 +5,10 @@ import { ScheduleDataService } from '../../services/schedule-data.service';
 import { ScheduleRequest } from '../../models/schedule.models';
 
 @Component({
-  selector: 'app-schedule-input',
-  templateUrl: './schedule-input.component.html',
-  styleUrls: ['./schedule-input.component.css']
+    selector: 'app-schedule-input',
+    templateUrl: './schedule-input.component.html',
+    styleUrls: ['./schedule-input.component.css'],
+    standalone: false
 })
 export class ScheduleInputComponent {
   isLoading = false;
