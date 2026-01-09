@@ -1,0 +1,275 @@
+﻿<div class="results-container" *ngIf="scheduleResult">
+  <div class="header">
+    <button class="btn btn-back" (click)="goBack()">Back to Input</button>
+    <h1>Schedule Results</h1>
+    <p class="subtitle">
+      {{ scheduleResult.request.year }} - 
+      {{ ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][scheduleResult.request.month - 1] }}
+    </p>
+  </div>
+
+  <div class="view-tabs">
+    <button class="tab" [class.active]="selectedView === 'summary'" (click)="selectedView = 'summary'">
+      Summary
+    </button>
+    <button class="tab" [class.active]="selectedView === 'daily'" (click)="selectedView = 'daily'">
+      Daily Breakdown
+    </button>
+    <button class="tab" [class.active]="selectedView === 'staff'" (click)="selectedView = 'staff'">
+      Staff Schedules
+    </button>
+    <button class="tab" [class.active]="selectedView === 'violations'" (click)="selectedView = 'violations'"
+            [class.has-violations]="scheduleResult.restViolations.length > 0">
+      Violations <span class="badge" *ngIf="scheduleResult.restViolations.length > 0">{{ scheduleResult.restViolations.length }}</span>
+    </button>
+  </div>
+
+  <!-- Summary View -->
+  <div class="content-panel" *ngIf="selectedView === 'summary'">
+    <div class="summary-grid">
+      <div class="summary-card">
+        <h3>Time Period</h3>
+        <div class="stat-row">
+          <span class="label">Total Days: </span>
+          <span class="value">{{ scheduleResult.totalDays }}</span>
+        </div>
+        <div class="stat-row">
+          <span class="label">Workdays: </span>
+          <span class="value">{{ scheduleResult.workdays }}</span>
+        </div>
+        <div class="stat-row">
+          <span class="label">Weekends/Holidays: </span>
+          <span class="value">{{ scheduleResult.nonWorkdays }}</span>
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <h3>Staff Configuration</h3>
+        <div class="stat-row">
+          <span class="label">Total Staff: </span>
+          <span class="value">{{ scheduleResult.request.totalStaffCount }}</span>
+        </div>
+        <div class="stat-row">
+          <span class="label">Shifts per Day: </span>
+          <span class="value">{{ scheduleResult.request.numberOfShifts }}</span>
+        </div>
+        <div class="stat-row">
+          <span class="label">Staff per Shift: </span>
+          <span class="value">{{ scheduleResult.request.staffPerShift }}</span>
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <h3>Work Hours</h3>
+        <div class="stat-row">
+          <span class="label">Total Regular Hours: </span>
+          <span class="value">{{ scheduleResult.totalRegularHours.toFixed(2) }}h</span>
+        </div>
+        <div class="stat-row">
+          <span class="label">Total Extended Hours: </span>
+          <span class="value">{{ scheduleResult.totalExtendedHours.toFixed(2) }}h</span>
+        </div>
+        <div class="stat-row total">
+          <span class="label">Combined Total: </span>
+          <span class="value">{{ (scheduleResult.totalRegularHours + scheduleResult.totalExtendedHours).toFixed(2) }}h</span>
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <h3>Workload Distribution</h3>
+        <div class="stat-row" *ngIf="getWorkloadStats() as stats">
+          <span class="label">Min Hours: </span>
+          <span class="value">{{ stats.min.toFixed(2) }}h</span>
+        </div>
+        <div class="stat-row" *ngIf="getWorkloadStats() as stats">
+          <span class="label">Max Hours: </span>
+          <span class="value">{{ stats.max.toFixed(2) }}h</span>
+        </div>
+        <div class="stat-row" *ngIf="getWorkloadStats() as stats">
+          <span class="label">Average Hours: </span>
+          <span class="value">{{ stats.avg.toFixed(2) }}h</span>
+        </div>
+        <div class="stat-row" *ngIf="getWorkloadStats() as stats">
+          <span class="label">Variance: </span>
+          <span class="value">{{ stats.variance.toFixed(2) }}h</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <h3>Shift Coverage (24-Hour)</h3>
+      <div class="shift-list">
+        <div class="shift-item" *ngFor="let label of getShiftLabels()">
+          {{ label }} ({{ scheduleResult.request.shiftDuration }}h)
+        </div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <h3>Work Parameters</h3>
+      <div class="param-grid">
+        <div class="param-item">
+          <strong>Regular Workday: </strong> 
+          {{ formatHour(scheduleResult.request.regularStartHour) }} - 
+          {{ formatHour((scheduleResult.request.regularStartHour + scheduleResult.request.standardHours) % 24) }} 
+          ({{ scheduleResult.request.standardHours }}h)
+        </div>
+        <div class="param-item">
+          <strong>Rest Requirements: </strong> 
+          {{ scheduleResult.request.restHoursBefore }}h before shift, 
+          {{ scheduleResult.request.restHoursAfter }}h after shift
+        </div>
+        <div class="param-item">
+          <strong>Extended Hours Limit: </strong> 
+          {{ scheduleResult.request.maxOnDutyHoursPerMonth }}h per person per month
+        </div>
+      </div>
+    </div>
+
+    <div class="warning-box" *ngIf="scheduleResult.restViolations.length > 0">
+      <strong>Warning: </strong> {{ scheduleResult.restViolations.length }} rest period violation(s) detected. 
+      Check the Violations tab for details.
+    </div>
+  </div>
+
+  <!-- Daily Breakdown View -->
+  <div class="content-panel" *ngIf="selectedView === 'daily'">
+    <div class="daily-schedule" *ngFor="let day of scheduleResult.dailySchedules">
+      <div class="day-header" [class.weekend]="!day.isWorkday">
+        <div class="day-info">
+          <span class="day-date">{{ formatDate(day.date) }}</span>
+          <span class="day-type" [class.workday]="day.isWorkday">
+            {{ day.isWorkday ? 'Workday' : 'Holiday/Weekend' }}
+          </span>
+        </div>
+      </div>
+
+      <div class="day-content">
+        <div class="assignment-section" *ngIf="day.regularStaffAssignments.length > 0">
+          <h4>Regular Work Hours ({{ scheduleResult.request.standardHours }}h)</h4>
+          <div class="assignment-list">
+            <div class="assignment-item" *ngFor="let assignment of day.regularStaffAssignments">
+              <span class="staff-id">{{ assignment.staffId }}</span>
+              <span class="time">{{ formatTime(assignment.shiftStart) }} - {{ formatTime(assignment.shiftEnd) }}</span>
+              <span class="hours">{{ assignment.hours.toFixed(2) }}h</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="assignment-section" *ngIf="day.shiftAssignments.length > 0">
+          <h4>24-Hour Shift Coverage</h4>
+          <div class="assignment-list">
+            <div class="assignment-item shift" *ngFor="let assignment of day.shiftAssignments">
+              <span class="shift-label">{{ assignment.shiftLabel }}</span>
+              <span class="staff-id">{{ assignment.staffId }}</span>
+              <span class="time">{{ formatTime(assignment.shiftStart) }} - {{ formatTime(assignment.shiftEnd) }}</span>
+              <span class="hours">
+                {{ assignment.hours.toFixed(2) }}h
+                <span class="extended" *ngIf="assignment.extendedHours > 0">
+                  [Ext: {{ assignment.extendedHours.toFixed(2) }}h]
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Staff Schedules View -->
+  <div class="content-panel" *ngIf="selectedView === 'staff'">
+    <div class="staff-list">
+      <div class="staff-card" *ngFor="let staff of scheduleResult.staffMembers">
+        <div class="staff-header" (click)="selectStaff(staff.staffId)">
+          <div class="staff-info">
+            <h3>{{ staff.staffId }}</h3>
+            <div class="staff-stats">
+              <span class="stat">Total: {{ staff.totalHours.toFixed(2) }}h</span>
+              <span class="stat">Regular: {{ staff.totalRegularHours.toFixed(2) }}h</span>
+              <span class="stat" [class.over-limit]="isOverExtendedHoursLimit(staff)">
+                Extended: {{ staff.totalExtendedHours.toFixed(2) }}h
+              </span>
+              <span class="stat">Assignments: {{ staff.allAssignments.length }}</span>
+            </div>
+          </div>
+          <span class="expand-icon" [class.expanded]="selectedStaffId === staff.staffId">▼</span>
+        </div>
+
+        <div class="staff-details" *ngIf="selectedStaffId === staff.staffId">
+          <div class="violation-alert" *ngIf="getViolationCountForStaff(staff.staffId) > 0">
+            {{ getViolationCountForStaff(staff.staffId) }} rest violation(s)
+          </div>
+
+          <div class="shift-distribution" *ngIf="getStaffShiftDistribution(staff) as dist">
+            <strong>Shift Distribution: </strong>
+            <span *ngFor="let key of Object.keys(dist)">{{ key }}: {{ dist[key] }} </span>
+          </div>
+
+          <div class="assignment-timeline">
+            <h4>Schedule</h4>
+            <div class="timeline-item" *ngFor="let assignment of getSortedAssignments(staff)">
+              <div class="timeline-date">
+                {{ formatDate(assignment.date) }}
+              </div>
+              <div class="timeline-details">
+                <span class="assignment-type" [class.shift]="!assignment.isRegularWork">
+                  {{ assignment.isRegularWork ? 'Regular Work' : assignment.shiftLabel }}
+                </span>
+                <span class="time">{{ formatTime(assignment.shiftStart) }} - {{ formatTime(assignment.shiftEnd) }}</span>
+                <span class="hours">
+                  {{ assignment.hours.toFixed(2) }}h
+                  <span class="extended" *ngIf="assignment.extendedHours > 0">
+                    [Ext: {{ assignment.extendedHours.toFixed(2) }}h]
+                  </span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Violations View -->
+  <div class="content-panel" *ngIf="selectedView === 'violations'">
+    <div class="violations-summary" *ngIf="scheduleResult.restViolations.length === 0">
+      <div class="success-message">
+        No rest period violations detected. All staff schedules comply with rest requirements.
+      </div>
+    </div>
+
+    <div class="violations-list" *ngIf="scheduleResult.restViolations.length > 0">
+      <div class="violation-card" *ngFor="let violation of scheduleResult.restViolations">
+        <div class="violation-header">
+          <h4>{{ violation.staffId }}</h4>
+          <span class="violation-date">{{ formatDate(violation.date) }}</span>
+        </div>
+        <div class="violation-details">
+          <p class="reason">{{ violation.reason }}</p>
+          <div class="violation-times">
+            <!-- Only show shift timing details for actual rest period violations, not monthly limit violations -->
+            <ng-container *ngIf="!isMonthlyLimitViolation(violation)">
+              <div class="time-info">
+                <strong>Previous Shift Ended: </strong> {{ formatDate(violation.previousShiftEnd) }} {{ formatTime(violation.previousShiftEnd) }}
+              </div>
+              <div class="time-info">
+                <strong>Next Shift Starts: </strong> {{ formatDate(violation.nextShiftStart) }} {{ formatTime(violation.nextShiftStart) }}
+              </div>
+              <div class="rest-comparison">
+                <strong>Rest Period: </strong> 
+                <span class="actual">{{ violation.actualRestHours.toFixed(2) }}h (actual)</span> vs 
+                <span class="required">{{ violation.requiredRestHours.toFixed(2) }}h (required)</span>
+              </div>
+            </ng-container>
+            <!-- For monthly limit violations, the reason already contains all the details -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="no-data" *ngIf="!scheduleResult">
+  <p>No schedule data available. Please go back and calculate a schedule.</p>
+  <button class="btn btn-primary" (click)="goBack()">Go to Input</button>
+</div>
