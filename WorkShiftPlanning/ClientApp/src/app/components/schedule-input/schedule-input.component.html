@@ -10,156 +10,162 @@
       <div class="form-row">
         <div class="form-group">
           <label for="year">Year</label>
-          <input type="number" id="year" name="year" 
-                 [(ngModel)]="scheduleRequest.year" 
-                 required min="2020" max="2100"
-                 class="form-control">
+          <input type="number" id="year" name="year"
+            [(ngModel)]="scheduleRequest.year"
+            required min="2020" max="2100"
+            class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="month">Month</label>
+            <select id="month" name="month"
+              [(ngModel)]="scheduleRequest.month"
+              required class="form-control">
+              <option [value]="1">January</option>
+              <option [value]="2">February</option>
+              <option [value]="3">March</option>
+              <option [value]="4">April</option>
+              <option [value]="5">May</option>
+              <option [value]="6">June</option>
+              <option [value]="7">July</option>
+              <option [value]="8">August</option>
+              <option [value]="9">September</option>
+              <option [value]="10">October</option>
+              <option [value]="11">November</option>
+              <option [value]="12">December</option>
+            </select>
+          </div>
         </div>
-        <div class="form-group">
-          <label for="month">Month</label>
-          <select id="month" name="month" 
-                  [(ngModel)]="scheduleRequest.month" 
-                  required class="form-control">
-            <option [value]="1">January</option>
-            <option [value]="2">February</option>
-            <option [value]="3">March</option>
-            <option [value]="4">April</option>
-            <option [value]="5">May</option>
-            <option [value]="6">June</option>
-            <option [value]="7">July</option>
-            <option [value]="8">August</option>
-            <option [value]="9">September</option>
-            <option [value]="10">October</option>
-            <option [value]="11">November</option>
-            <option [value]="12">December</option>
-          </select>
+        <div class="info-box">
+          <span>Selected: {{ getMonthName() }}</span>
+          <span>Workdays: {{ getWorkdaysInMonth() }}</span>
         </div>
       </div>
-      <div class="info-box">
-        <span>Selected: {{ getMonthName() }}</span>
-        <span>Workdays: {{ getWorkdaysInMonth() }}</span>
-      </div>
-    </div>
 
-    <div class="form-section">
-      <h2>Staff Configuration</h2>
-      <div class="form-row">
-        <div class="form-group">
-          <label for="totalStaffCount">Total Staff Members</label>
-          <input type="number" id="totalStaffCount" name="totalStaffCount" 
-                 [(ngModel)]="scheduleRequest.totalStaffCount" 
-                 required min="1"
-                 class="form-control">
+      <div class="form-section">
+        <h2>Staff Configuration</h2>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="totalStaffCount">Total Staff Members</label>
+            <input type="number" id="totalStaffCount" name="totalStaffCount"
+              [(ngModel)]="scheduleRequest.totalStaffCount"
+              required min="1"
+              class="form-control">
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
 
-    <div class="form-section">
-      <h2>Shift Configuration</h2>
-      <div class="form-row">
-        <div class="form-group">
-          <label for="numberOfShifts">Number of Shifts per Day</label>
-          <input type="number" id="numberOfShifts" name="numberOfShifts" 
-                 [(ngModel)]="scheduleRequest.numberOfShifts" 
-                 (ngModelChange)="onNumberOfShiftsChange()"
-                 required min="1" max="4"
-                 class="form-control">
-        </div>
-        <div class="form-group">
-          <label for="staffPerShift">Staff per Shift</label>
-          <input type="number" id="staffPerShift" name="staffPerShift" 
-                 [(ngModel)]="scheduleRequest.staffPerShift" 
-                 required min="1"
-                 class="form-control">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label for="shiftDuration">Shift Duration (hours)</label>
-          <input type="number" id="shiftDuration" name="shiftDuration" 
-                 [(ngModel)]="scheduleRequest.shiftDuration" 
-                 step="0.5" readonly
-                 class="form-control readonly">
-          <small>Calculated automatically: 24 / {{ scheduleRequest.numberOfShifts }} = {{ scheduleRequest.shiftDuration.toFixed(2) }} hours</small>
-        </div>
-        <div class="form-group">
-          <label for="firstShiftStartHour">First Shift Start Hour (0-23)</label>
-          <input type="number" id="firstShiftStartHour" name="firstShiftStartHour" 
-                 [(ngModel)]="scheduleRequest.firstShiftStartHour" 
-                 required min="0" max="23"
-                 class="form-control">
-        </div>
-      </div>
-    </div>
+        <div class="form-section">
+          <h2>Shift Configuration</h2>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="numberOfShifts">Number of Shifts per Day</label>
+              <input type="number" id="numberOfShifts" name="numberOfShifts"
+                [(ngModel)]="scheduleRequest.numberOfShifts"
+                (ngModelChange)="onNumberOfShiftsChange()"
+                required min="1" max="4"
+                class="form-control">
+              </div>
+              <div class="form-group">
+                <label for="staffPerShift">Staff per Shift</label>
+                <input type="number" id="staffPerShift" name="staffPerShift"
+                  [(ngModel)]="scheduleRequest.staffPerShift"
+                  required min="1"
+                  class="form-control">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="shiftDuration">Shift Duration (hours)</label>
+                  <input type="number" id="shiftDuration" name="shiftDuration"
+                    [(ngModel)]="scheduleRequest.shiftDuration"
+                    step="0.5" readonly
+                    class="form-control readonly">
+                    <small>Calculated automatically: 24 / {{ scheduleRequest.numberOfShifts }} = {{ scheduleRequest.shiftDuration.toFixed(2) }} hours</small>
+                  </div>
+                  <div class="form-group">
+                    <label for="firstShiftStartHour">First Shift Start Hour (0-23)</label>
+                    <input type="number" id="firstShiftStartHour" name="firstShiftStartHour"
+                      [(ngModel)]="scheduleRequest.firstShiftStartHour"
+                      required min="0" max="23"
+                      class="form-control">
+                    </div>
+                  </div>
+                </div>
 
-    <div class="form-section">
-      <h2>Regular Work Configuration</h2>
-      <div class="form-row">
-        <div class="form-group">
-          <label for="regularStartHour">Regular Workday Start Hour (0-23)</label>
-          <input type="number" id="regularStartHour" name="regularStartHour" 
-                 [(ngModel)]="scheduleRequest.regularStartHour" 
-                 required min="0" max="23"
-                 class="form-control">
-        </div>
-        <div class="form-group">
-          <label for="standardHours">Standard Workday Hours</label>
-          <input type="number" id="standardHours" name="standardHours" 
-                 [(ngModel)]="scheduleRequest.standardHours" 
-                 step="0.5" required min="1"
-                 class="form-control">
-        </div>
-      </div>
-    </div>
+                <div class="form-section">
+                  <h2>Regular Work Configuration</h2>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label for="regularStartHour">Regular Workday Start Hour (0-23)</label>
+                      <input type="number" id="regularStartHour" name="regularStartHour"
+                        [(ngModel)]="scheduleRequest.regularStartHour"
+                        required min="0" max="23"
+                        class="form-control">
+                      </div>
+                      <div class="form-group">
+                        <label for="standardHours">Standard Workday Hours</label>
+                        <input type="number" id="standardHours" name="standardHours"
+                          [(ngModel)]="scheduleRequest.standardHours"
+                          step="0.5" required min="1"
+                          class="form-control">
+                        </div>
+                      </div>
+                    </div>
 
-    <div class="form-section">
-      <h2>Work Hours Limits</h2>
-      <div class="form-row">
-        <div class="form-group">
-          <label for="maxOnDutyHoursPerMonth">Maximum Extended Hours per Month</label>
-          <input type="number" id="maxOnDutyHoursPerMonth" name="maxOnDutyHoursPerMonth" 
-                 [(ngModel)]="scheduleRequest.maxOnDutyHoursPerMonth" 
-                 step="1" required min="0"
-                 class="form-control">
-        </div>
-      </div>
-      <div class="info-box">
-        <span>Maximum work hours for {{ getMonthName() }}: {{ getMaxWorkHours().toFixed(2) }}h</span>
-        <span>(Regular: {{ (getWorkdaysInMonth() * scheduleRequest.standardHours).toFixed(2) }}h + Extended: {{ scheduleRequest.maxOnDutyHoursPerMonth.toFixed(2) }}h)</span>
-      </div>
-    </div>
+                    <div class="form-section">
+                      <h2>Work Hours Limits</h2>
+                      <div class="form-row">
+                        <div class="form-group">
+                          <label for="maxOnDutyHoursPerMonth">Maximum Extended Hours per Month</label>
+                          <input type="number" id="maxOnDutyHoursPerMonth" name="maxOnDutyHoursPerMonth"
+                            [(ngModel)]="scheduleRequest.maxOnDutyHoursPerMonth"
+                            step="1" required min="0"
+                            class="form-control">
+                          </div>
+                        </div>
+                        <div class="info-box">
+                          <span>Maximum work hours for {{ getMonthName() }}: {{ getMaxWorkHours().toFixed(2) }}h</span>
+                          <span>(Regular: {{ (getWorkdaysInMonth() * scheduleRequest.standardHours).toFixed(2) }}h + Extended: {{ scheduleRequest.maxOnDutyHoursPerMonth.toFixed(2) }}h)</span>
+                        </div>
+                      </div>
 
-    <div class="form-section">
-      <h2>Rest Requirements</h2>
-      <div class="form-row">
-        <div class="form-group">
-          <label for="restHoursBefore">Minimum Rest Hours Before Shift</label>
-          <input type="number" id="restHoursBefore" name="restHoursBefore" 
-                 [(ngModel)]="scheduleRequest.restHoursBefore" 
-                 step="1" required min="0"
-                 class="form-control">
-        </div>
-        <div class="form-group">
-          <label for="restHoursAfter">Minimum Rest Hours After Shift</label>
-          <input type="number" id="restHoursAfter" name="restHoursAfter" 
-                 [(ngModel)]="scheduleRequest.restHoursAfter" 
-                 step="1" required min="0"
-                 class="form-control">
-        </div>
-      </div>
-    </div>
+                      <div class="form-section">
+                        <h2>Rest Requirements</h2>
+                        <div class="form-row">
+                          <div class="form-group">
+                            <label for="restHoursBefore">Minimum Rest Hours Before Shift</label>
+                            <input type="number" id="restHoursBefore" name="restHoursBefore"
+                              [(ngModel)]="scheduleRequest.restHoursBefore"
+                              step="1" required min="0"
+                              class="form-control">
+                            </div>
+                            <div class="form-group">
+                              <label for="restHoursAfter">Minimum Rest Hours After Shift</label>
+                              <input type="number" id="restHoursAfter" name="restHoursAfter"
+                                [(ngModel)]="scheduleRequest.restHoursAfter"
+                                step="1" required min="0"
+                                class="form-control">
+                              </div>
+                            </div>
+                          </div>
 
-    <div class="error-message" *ngIf="errorMessage">
-      <strong>Error: </strong>{{ errorMessage }}
-    </div>
+                          @if (errorMessage) {
+                            <div class="error-message">
+                              <strong>Error: </strong>{{ errorMessage }}
+                            </div>
+                          }
 
-    <div class="form-actions">
-      <button type="submit" 
-              [disabled]="!scheduleForm.valid || isLoading" 
-              class="btn btn-primary">
-        <span *ngIf="!isLoading">Calculate Schedule</span>
-        <span *ngIf="isLoading">Calculating...</span>
-      </button>
-    </div>
-  </form>
-</div>
+                          <div class="form-actions">
+                            <button type="submit"
+                              [disabled]="!scheduleForm.valid || isLoading"
+                              class="btn btn-primary">
+                              @if (!isLoading) {
+                                <span>Calculate Schedule</span>
+                              }
+                              @if (isLoading) {
+                                <span>Calculating...</span>
+                              }
+                            </button>
+                          </div>
+                        </form>
+                      </div>
