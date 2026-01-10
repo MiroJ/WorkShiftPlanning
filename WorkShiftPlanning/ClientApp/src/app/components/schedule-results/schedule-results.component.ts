@@ -23,6 +23,9 @@ export class ScheduleResultsComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
+    // Scroll to top of page when component loads
+    window.scrollTo(0, 0);
+    
     // Get the schedule result from the service
     this.scheduleResult = this.scheduleDataService.getScheduleResult();
     
