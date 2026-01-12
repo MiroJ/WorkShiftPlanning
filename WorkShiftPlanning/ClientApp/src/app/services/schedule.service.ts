@@ -1,18 +1,17 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { ScheduleRequest, ScheduleResult } from '../models/schedule.models';
-import { environment } from '../../environments/environment';
+import { ScheduleCalculatorService } from './schedule-calculator.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ScheduleService {
-  private apiUrl = `${environment.apiUrl}/schedule`;
-
-  constructor(private http: HttpClient) { }
+  constructor(private calculatorService: ScheduleCalculatorService) { }
 
   calculateSchedule(request: ScheduleRequest): Observable<ScheduleResult> {
-    return this.http.post<ScheduleResult>(`${this.apiUrl}/calculate`, request);
+    // Calculate schedule locally in the browser
+    const result = this.calculatorService.calculateSchedule(request);
+    return of(result);
   }
 }

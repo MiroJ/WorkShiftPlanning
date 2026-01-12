@@ -1,7 +1,7 @@
 ﻿@if (scheduleResult) {
   <div class="results-container">
     <div class="header">
-      <button class="btn btn-back" (click)="goBack()">< Back to Input</button>
+      <button class="btn btn-back" (click)="goBack()">&#x25C1; Back to Input</button>
       <h1>Schedule Results</h1>
       <p class="subtitle">
         {{ scheduleResult.request.year }} -
@@ -213,7 +213,7 @@
                   <span class="stat">Assignments: {{ staff.allAssignments.length }}</span>
                 </div>
               </div>
-              <span class="expand-icon" [class.expanded]="selectedStaffId === staff.staffId">▼</span>
+              <span class="expand-icon" [class.expanded]="selectedStaffId === staff.staffId">&#x25BC;</span>
             </div>
             @if (selectedStaffId === staff.staffId) {
               <div class="staff-details">
